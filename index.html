@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CSGOGem Rewards Viewer — See Your Rakeback Early</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Syne:wght@400;700;800&family=JetBrains+Mono:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-0: #07080a;
+    --bg-1: #0d0f14;
+    --bg-2: #131620;
+    --bg-card: #0f1118;
+    --green: #00e87a;
+    --green-dim: #00a856;
+    --green-glow: rgba(0, 232, 122, 0.15);
+    --gold: #f0b429;
+    --gold-dim: #b8861c;
+    --red: #ff3d3d;
+    --text: #e8eaf0;
+    --text-dim: #6b7280;
+    --text-muted: #3d4352;
+    --border: rgba(255,255,255,0.06);
+    --border-green: rgba(0, 232, 122, 0.25);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg-0);
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    overflow-x: hidden;
+    cursor: crosshair;
+  }
+
+  /* SCAN LINE OVERLAY */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.08) 2px,
+      rgba(0,0,0,0.08) 4px
+    );
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  /* NOISE TEXTURE */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    background-size: 200px;
+    opacity: 0.4;
+    pointer-events: none;
+    z-index: 9998;
+  }
+
+  /* ─── NAV ─── */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    padding: 18px 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+    background: rgba(7,8,10,0.85);
+    backdrop-filter: blur(12px);
+  }
+
+  .nav-logo {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 15px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text);
+  }
+
+  .nav-logo span { color: var(--green); }
+
+  .nav-tag {
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    color: var(--text-dim);
+    text-transform: uppercase;
+  }
+
+  .nav-dl {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 18px;
+    background: var(--green);
+    color: #000;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    text-decoration: none;
+    font-weight: 700;
+    clip-path: polygon(8px 0%, 100% 0%, calc(100% - 8px) 100%, 0% 100%);
+    transition: background 0.2s, transform 0.15s;
+    cursor: pointer;
+  }
+
+  .nav-dl:hover { background: #1fffa0; transform: translateY(-1px); }
+
+  /* ─── HERO ─── */
+  .hero {
+    position: relative;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    padding: 120px 40px 80px;
+    overflow: hidden;
+  }
+
+  .hero-bg-grid {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,232,122,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,232,122,0.04) 1px, transparent 1px);
+    background-size: 60px 60px;
+    mask-image: radial-gradient(ellipse 70% 60% at 60% 50%, black 30%, transparent 80%);
+  }
+
+  .hero-glow {
+    position: absolute;
+    right: -100px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 700px;
+    height: 700px;
+    background: radial-gradient(circle, rgba(0,232,122,0.08) 0%, transparent 65%);
+    pointer-events: none;
+  }
+
+  .hero-glow-2 {
+    position: absolute;
+    left: -200px;
+    bottom: -100px;
+    width: 500px;
+    height: 500px;
+    background: radial-gradient(circle, rgba(240,180,41,0.05) 0%, transparent 65%);
+    pointer-events: none;
+  }
+
+  .hero-content {
+    position: relative;
+    max-width: 820px;
+    padding-bottom: 120px;
+  }
+
+  .hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px;
+    border: 1px solid var(--border-green);
+    background: var(--green-glow);
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--green);
+    margin-bottom: 32px;
+    animation: fadeUp 0.6s ease both;
+  }
+
+  .hero-badge::before {
+    content: '';
+    width: 6px; height: 6px;
+    background: var(--green);
+    border-radius: 50%;
+    animation: pulse 2s ease infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.7); }
+  }
+
+  .hero-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: clamp(48px, 7vw, 88px);
+    line-height: 0.95;
+    letter-spacing: -0.02em;
+    margin-bottom: 24px;
+    animation: fadeUp 0.6s 0.1s ease both;
+  }
+
+  .hero-title .line-1 { color: var(--text); display: block; }
+  .hero-title .line-2 {
+    display: block;
+    color: var(--green);
+    position: relative;
+    text-shadow: 0 0 60px rgba(0,232,122,0.4);
+  }
+
+  .hero-title .line-3 {
+    display: block;
+    color: var(--text-dim);
+    font-size: 0.55em;
+    font-weight: 400;
+    letter-spacing: 0.01em;
+    margin-top: 8px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .hero-desc {
+    font-size: 14px;
+    line-height: 1.8;
+    color: var(--text-dim);
+    max-width: 520px;
+    margin-bottom: 48px;
+    animation: fadeUp 0.6s 0.2s ease both;
+  }
+
+  .hero-desc strong { color: var(--gold); font-weight: 600; }
+
+  .hero-actions {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+    animation: fadeUp 0.6s 0.3s ease both;
+  }
+
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 32px;
+    background: var(--green);
+    color: #000;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    text-decoration: none;
+    clip-path: polygon(12px 0%, 100% 0%, calc(100% - 12px) 100%, 0% 100%);
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn-primary::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    transform: translateX(-100%);
+    transition: transform 0.4s ease;
+  }
+
+  .btn-primary:hover::after { transform: translateX(100%); }
+  .btn-primary:hover { background: #1fffa0; transform: translateY(-2px); box-shadow: 0 12px 40px rgba(0,232,122,0.3); }
+
+  .btn-ghost {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 24px;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.05em;
+    text-decoration: none;
+    transition: all 0.2s;
+  }
+
+  .btn-ghost:hover { border-color: var(--green-dim); color: var(--green); }
+
+  .hero-stat-strip {
+    position: absolute;
+    bottom: 40px;
+    left: 40px;
+    right: 40px;
+    display: flex;
+    gap: 40px;
+    animation: fadeUp 0.6s 0.5s ease both;
+  }
+
+  .hero-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .stat-val {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 24px;
+    color: var(--green);
+  }
+
+  .stat-label {
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  .stat-div {
+    width: 1px;
+    background: var(--border);
+    align-self: stretch;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ─── FEATURES ─── */
+  .features {
+    padding: 100px 40px;
+    position: relative;
+  }
+
+  .section-header {
+    margin-bottom: 64px;
+  }
+
+  .section-eyebrow {
+    font-size: 10px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--green);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .section-eyebrow::before {
+    content: '';
+    width: 32px;
+    height: 1px;
+    background: var(--green);
+  }
+
+  .section-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: clamp(28px, 4vw, 48px);
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+  }
+
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 2px;
+    background: var(--border);
+  }
+
+  .feature-card {
+    background: var(--bg-1);
+    padding: 40px 36px;
+    position: relative;
+    overflow: hidden;
+    transition: background 0.3s;
+  }
+
+  .feature-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: transparent;
+    transition: background 0.3s;
+  }
+
+  .feature-card:hover { background: var(--bg-2); }
+  .feature-card:hover::before { background: var(--green); }
+
+  .feature-icon {
+    width: 44px;
+    height: 44px;
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 24px;
+    font-size: 20px;
+    transition: border-color 0.3s;
+  }
+
+  .feature-card:hover .feature-icon { border-color: var(--border-green); }
+
+  .feature-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 16px;
+    margin-bottom: 12px;
+    letter-spacing: 0.02em;
+  }
+
+  .feature-desc {
+    font-size: 12px;
+    line-height: 1.8;
+    color: var(--text-dim);
+  }
+
+  .feature-tag {
+    display: inline-block;
+    margin-top: 16px;
+    padding: 3px 10px;
+    background: rgba(0,232,122,0.08);
+    border: 1px solid var(--border-green);
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--green-dim);
+  }
+
+  /* ─── HOW IT WORKS ─── */
+  .install {
+    padding: 100px 40px;
+    position: relative;
+    background: var(--bg-1);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .steps-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2px;
+    background: var(--border);
+  }
+
+  .step {
+    background: var(--bg-card);
+    padding: 36px 32px;
+    cursor: default;
+    transition: background 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .step::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: transparent;
+    transition: background 0.2s;
+  }
+
+  .step:hover { background: var(--bg-2); }
+  .step:hover::before { background: var(--green); }
+  .step:hover .step-num { color: var(--green); }
+  .step:hover .step-title { color: var(--green); }
+
+  .step-num {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    color: var(--text-muted);
+    letter-spacing: 0.1em;
+    margin-bottom: 20px;
+    transition: color 0.2s;
+  }
+
+  .step-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    margin-bottom: 10px;
+    transition: color 0.2s;
+  }
+
+  .step-detail {
+    font-size: 11px;
+    line-height: 1.8;
+    color: var(--text-dim);
+  }
+
+  .step-detail code {
+    background: rgba(0,232,122,0.08);
+    border: 1px solid var(--border-green);
+    padding: 1px 6px;
+    color: var(--green);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+  }
+
+  /* ─── DOWNLOAD CTA ─── */
+  .cta {
+    padding: 120px 40px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .cta-glow {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 600px;
+    height: 400px;
+    background: radial-gradient(ellipse, rgba(0,232,122,0.07) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .cta-inner { position: relative; }
+
+  .cta-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: clamp(36px, 5vw, 64px);
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    margin-bottom: 16px;
+  }
+
+  .cta-title span { color: var(--green); }
+
+  .cta-sub {
+    font-size: 13px;
+    color: var(--text-dim);
+    margin-bottom: 48px;
+    line-height: 1.7;
+  }
+
+  .cta-actions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .note {
+    margin-top: 24px;
+    font-size: 10px;
+    color: var(--text-muted);
+    letter-spacing: 0.1em;
+  }
+
+  /* ─── FOOTER ─── */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 32px 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--text-muted);
+    letter-spacing: 0.05em;
+  }
+
+  .footer-logo {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+
+  .footer-logo span { color: var(--green); }
+
+  /* ─── SCROLL ANIMATIONS ─── */
+  .reveal {
+    opacity: 0;
+    transform: translateY(24px);
+    transition: opacity 0.7s ease, transform 0.7s ease;
+  }
+  .reveal.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* ─── RESPONSIVE ─── */
+  @media (max-width: 768px) {
+    nav { padding: 16px 20px; }
+    .nav-tag { display: none; }
+
+    .hero { padding: 100px 20px 100px; }
+    .hero-stat-strip { flex-wrap: wrap; gap: 20px; left: 20px; right: 20px; }
+    .stat-div { display: none; }
+
+    .features { padding: 70px 20px; }
+    .install { padding: 70px 20px; }
+
+    .steps-grid { grid-template-columns: 1fr 1fr; }
+
+    .cta { padding: 80px 20px; }
+    footer { padding: 24px 20px; flex-direction: column; gap: 12px; text-align: center; }
+  }
+
+  @media (max-width: 480px) {
+    .hero-title { font-size: 40px; }
+    .btn-primary { padding: 12px 24px; font-size: 12px; }
+    .steps-grid { grid-template-columns: 1fr; }
+  }
+
+  /* Hover crosshair on interactive elements */
+  a, button { cursor: pointer; }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">CSGOGEM <span>//</span> REWARDS VIEWER</div>
+  <a href="csgogem-extension.zip" download class="nav-dl">
+    <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1v7M3 5l3 3 3-3M1 10h10" stroke="#000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    Download
+  </a>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-bg-grid"></div>
+  <div class="hero-glow"></div>
+  <div class="hero-glow-2"></div>
+
+  <div class="hero-content">
+    <div class="hero-badge">Chrome Extension &bull; Free &bull; Open Source</div>
+
+    <h1 class="hero-title">
+      <span class="line-1">YOUR RAKEBACK,</span>
+      <span class="line-2">REVEALED EARLY.</span>
+    </h1>
+
+    <p class="hero-desc">
+      Stop waiting. <strong>CSGOGem Rewards Viewer</strong> intercepts the rewards API and surfaces your weekly and monthly rakeback data the moment it's available — right on the rewards page, before the site shows it.
+    </p>
+
+    <div class="hero-actions">
+      <a href="csgogem-extension.zip" download class="btn-primary">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1.5v8M4 7l3 3.5L10 7M2 12h10" stroke="#000" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Download ZIP
+      </a>
+      <a href="#install" class="btn-ghost">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="5" stroke="currentColor" stroke-width="1.2"/><path d="M6 5v4M6 3.5v.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+        How to install
+      </a>
+    </div>
+  </div>
+
+  <div class="hero-stat-strip">
+    <div class="hero-stat">
+      <span class="stat-val">2</span>
+      <span class="stat-label">Rakeback Periods</span>
+    </div>
+    <div class="stat-div"></div>
+    <div class="hero-stat">
+      <span class="stat-val">~0ms</span>
+      <span class="stat-label">Added Latency</span>
+    </div>
+    <div class="stat-div"></div>
+    <div class="hero-stat">
+      <span class="stat-val">100%</span>
+      <span class="stat-label">Free Forever</span>
+    </div>
+    <div class="stat-div"></div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="features">
+  <div class="section-header reveal">
+    <div class="section-eyebrow">What it does</div>
+    <h2 class="section-title">Instant visibility into<br>your rewards balance.</h2>
+  </div>
+
+  <div class="features-grid">
+    <div class="feature-card reveal">
+      <div class="feature-icon">⚡</div>
+      <div class="feature-title">Real-Time API Intercept</div>
+      <p class="feature-desc">Wraps the native fetch API in page context to capture rewards data the moment csgogem.com requests it — zero delay, zero polling.</p>
+      <span class="feature-tag">Passive Listener</span>
+    </div>
+    <div class="feature-card reveal" style="transition-delay: 0.1s">
+      <div class="feature-icon">📊</div>
+      <div class="feature-title">Weekly &amp; Monthly Rakeback</div>
+      <p class="feature-desc">Displays both your weekly and monthly rakeback values inline on the rewards page, formatted exactly like native site elements.</p>
+      <span class="feature-tag">Non-Intrusive UI</span>
+    </div>
+    <div class="feature-card reveal" style="transition-delay: 0.2s">
+      <div class="feature-icon">🔒</div>
+      <div class="feature-title">Privacy First</div>
+      <p class="feature-desc">All processing is local. No external servers, no data collection, no analytics. Your rewards data stays in your browser.</p>
+      <span class="feature-tag">Zero Telemetry</span>
+    </div>
+    <div class="feature-card reveal" style="transition-delay: 0.3s">
+      <div class="feature-icon">🎯</div>
+      <div class="feature-title">Surgical Permissions</div>
+      <p class="feature-desc">Only activates on <code style="font-size:10px; background:rgba(0,232,122,0.08); border:1px solid rgba(0,232,122,0.25); padding:1px 5px; color:var(--green); font-family:'Share Tech Mono',monospace;">csgogem.com/rewards</code>. No broad host permissions, no background scripts watching your tabs.</p>
+      <span class="feature-tag">Minimal Footprint</span>
+    </div>
+  </div>
+</section>
+
+<!-- INSTALL -->
+<section class="install" id="install">
+  <div class="section-header reveal" style="margin-bottom:48px;">
+    <div class="section-eyebrow">Installation</div>
+    <h2 class="section-title">Up and running in 60 seconds.</h2>
+  </div>
+
+  <div class="steps-grid">
+    <div class="step reveal">
+      <div class="step-num">01 &mdash; Download</div>
+      <div class="step-title">Download the extension ZIP</div>
+      <p class="step-detail">Click the download button on this page to get the latest <code>.zip</code> archive of the extension.</p>
+    </div>
+    <div class="step reveal" style="transition-delay:0.08s">
+      <div class="step-num">02 &mdash; Extract</div>
+      <div class="step-title">Extract the ZIP file</div>
+      <p class="step-detail">Right-click the downloaded file and choose <code>Extract All</code> (Windows) or double-click (Mac). Note where you save the folder.</p>
+    </div>
+    <div class="step reveal" style="transition-delay:0.16s">
+      <div class="step-num">03 &mdash; Open</div>
+      <div class="step-title">Open Chrome Extensions</div>
+      <p class="step-detail">In Chrome, type <code>chrome://extensions</code> in the address bar and press Enter.</p>
+    </div>
+    <div class="step reveal" style="transition-delay:0.24s">
+      <div class="step-num">04 &mdash; Dev Mode</div>
+      <div class="step-title">Enable Developer Mode</div>
+      <p class="step-detail">Toggle <code>Developer mode</code> on in the top-right corner. The page will refresh with new options.</p>
+    </div>
+    <div class="step reveal" style="transition-delay:0.32s">
+      <div class="step-num">05 &mdash; Load</div>
+      <div class="step-title">Load the unpacked extension</div>
+      <p class="step-detail">Click <code>Load unpacked</code>, navigate to and select the extracted folder. The extension appears in your list immediately.</p>
+    </div>
+    <div class="step reveal" style="transition-delay:0.4s">
+      <div class="step-num">06 &mdash; Done</div>
+      <div class="step-title">Visit csgogem.com/rewards</div>
+      <p class="step-detail">Navigate to <code>csgogem.com/rewards</code>. Your rakeback values appear automatically once the page loads.</p>
+    </div>
+  </div>
+</section>
+
+<!-- CTA / DOWNLOAD -->
+<section class="cta" id="download">
+  <div class="cta-glow"></div>
+  <div class="cta-inner reveal">
+    <h2 class="cta-title">Ready to see what<br>you've <span>actually earned</span>?</h2>
+    <p class="cta-sub">Free. No accounts. No tracking. Just your rakeback, surfaced early.</p>
+    <div class="cta-actions">
+      <a href="csgogem-extension.zip" download class="btn-primary" style="font-size:15px; padding:18px 44px;">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 2v9M5 8l3 3.5L11 8M2 14h12" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Download Extension
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-logo">CSGOGEM <span>//</span> REWARDS VIEWER</div>
+  <div>Not affiliated with csgogem.com</div>
+</footer>
+
+<script>
+  // Scroll reveal
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('visible');
+        observer.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+
+  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+  // Glitch effect on hero title line-2
+  const glitchEl = document.querySelector('.hero-title .line-2');
+  const originalText = glitchEl.textContent;
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789#@$%';
+
+  function glitch() {
+    let iterations = 0;
+    const interval = setInterval(() => {
+      glitchEl.textContent = originalText
+        .split('')
+        .map((char, i) => {
+          if (char === ' ') return ' ';
+          if (i < iterations) return originalText[i];
+          return chars[Math.floor(Math.random() * chars.length)];
+        })
+        .join('');
+      if (iterations >= originalText.length) {
+        clearInterval(interval);
+        glitchEl.textContent = originalText;
+      }
+      iterations += 1.5;
+    }, 30);
+  }
+
+  // Trigger glitch on hover
+  glitchEl.addEventListener('mouseenter', glitch);
+
+  // Run once on load after a delay
+  setTimeout(glitch, 1200);
+</script>
+</body>
+</html>
