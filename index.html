@@ -662,6 +662,15 @@
     text-transform: uppercase;
   }
 
+  .tip-coin-network {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    opacity: 0.6;
+  }
+
   .tip-addr {
     font-family: 'Share Tech Mono', monospace;
     font-size: 11px;
@@ -931,6 +940,7 @@
         <div class="tip-coin">
           <span class="tip-coin-dot usdc"></span>
           <span class="tip-coin-name">USDC</span>
+          <span class="tip-coin-network">ERC-20</span>
         </div>
         <span class="tip-addr" id="addr-usdc">0xBa2fc9E44b24618EdDBF195B543bcbdf671188A7</span>
         <button class="tip-copy" onclick="copyAddr('addr-usdc', this)">Copy</button>
@@ -939,6 +949,7 @@
         <div class="tip-coin">
           <span class="tip-coin-dot sol"></span>
           <span class="tip-coin-name">SOL</span>
+          <span class="tip-coin-network">Solana</span>
         </div>
         <span class="tip-addr" id="addr-sol">EDRsSMhjc1ohNWJQHEuYaLJWUCy9iiuPWJcx9UYGNe7J</span>
         <button class="tip-copy" onclick="copyAddr('addr-sol', this)">Copy</button>
